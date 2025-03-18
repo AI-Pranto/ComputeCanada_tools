@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# options
+# Options
 OPENMC_VERSION="develop"     # develop, v0.15.0, v0.14.0, v0.13.3 etc.
-DATA_LIBRARY="endfb-vii.1"   # endfb-vii.1,or endfb-viii.0
+DATA_LIBRARY="endfb-vii.1"   # endfb-vii.1, or endfb-viii.0
 INSTALL_DIR="$HOME/code"
 
-# Data library URL and cross sections file path
+CLUSTER_NAME=$(echo $CC_CLUSTER)
+
+# Data library URL and cross-sections file path
 if [[ "$DATA_LIBRARY" == "endfb-vii.1" ]]; then
   DATA_URL="https://anl.box.com/shared/static/9igk353zpy8fn9ttvtrqgzvw1vtejoz6.xz"
   CROSS_SECTIONS_DIR="endfb-vii.1-hdf5"
@@ -17,11 +19,15 @@ else
   exit 1
 fi
 
-# Load required modules
+# Load required modules based on cluster
 module purge > /dev/null 2>&1
-module load python/3.11.5 hdf5-mpi/1.14.2 cmake
+if [[ "$CLUSTER_NAME" == "niagara" ]]; then
+  module load NiaEnv/2022a gcc/11.2.0 openmpi hdf5/1.12.3 python/3.11.5 cmake
+else
+  module load python/3.11.5 hdf5-mpi/1.14.2 cmake
+fi
 
-# Clone openmc repo
+# Clone OpenMC repository
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 git clone https://github.com/openmc-dev/openmc.git --single-branch -b "$OPENMC_VERSION"
@@ -40,15 +46,20 @@ make -j 8 install
 echo 'export PATH=$PATH:'"$INSTALL_DIR/bin" >> "$HOME/.bashrc"
 
 # Set up virtual environment
-cd "$INSTALL_DIR"/openmc
+cd "$INSTALL_DIR/openmc"
 python -m venv $INSTALL_DIR/openmc_dev
 source $INSTALL_DIR/openmc_dev/bin/activate
 pip install msgpack packaging "cython<3.0" "numpy<2.0"
 MPICC="mpicc" pip install --no-cache-dir --no-binary=mpi4py mpi4py
-HDF5_MPI="ON" CC=mpicc pip install --no-cache-dir --no-build-isolation --no-deps --no-binary=h5py h5py
+
+# Special handling for Niagara (skip HDF5_MPI installation)
+if [[ "$CLUSTER_NAME" != "niagara" ]]; then
+  HDF5_MPI="ON" CC=mpicc pip install --no-cache-dir --no-build-isolation --no-deps --no-binary=h5py h5py
+fi
+
 pip install .
 
-# search for cross_sections.xml file
+# Search for cross_sections.xml file
 CROSS_SECTIONS_FILE=$(basename "$(find $HOME -name "cross_sections.xml" 2>/dev/null | head -n 1)")
 
 if [[ -n "$CROSS_SECTIONS_FILE" ]]; then
