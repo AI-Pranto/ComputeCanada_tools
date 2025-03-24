@@ -22,7 +22,7 @@ fi
 # Load required modules based on cluster
 module purge > /dev/null 2>&1
 if [[ "$CLUSTER_NAME" == "niagara" ]]; then
-  module load NiaEnv/2022a gcc/11.2.0 openmpi hdf5/1.12.3 python/3.11.5 cmake
+  module load NiaEnv/2022a gcc/11.2.0 openmpi hdf5-mpi/1.12.2 python/3.11.5 cmake
 else
   module load python/3.11.5 hdf5-mpi/1.14.2 cmake
 fi
