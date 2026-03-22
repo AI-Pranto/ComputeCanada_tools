@@ -21,11 +21,7 @@ fi
 
 # Load required modules based on cluster
 module purge > /dev/null 2>&1
-if [[ "$CLUSTER_NAME" == "niagara" ]]; then
-  module load NiaEnv/2022a gcc/11.2.0 openmpi hdf5-mpi/1.12.2 python/3.11.5 cmake
-else
-  module load python/3.11.5 hdf5-mpi/1.14.2 cmake
-fi
+module load StdEnv/2023 openmpi/4.1.5 hdf5-mpi/1.14.2 python/3.12.4
 
 # Clone OpenMC repository
 mkdir -p "$INSTALL_DIR"
@@ -49,7 +45,7 @@ echo 'export PATH=$PATH:'"$INSTALL_DIR/bin" >> "$HOME/.bashrc"
 cd "$INSTALL_DIR/openmc"
 python -m venv $INSTALL_DIR/openmc_dev
 source $INSTALL_DIR/openmc_dev/bin/activate
-pip install msgpack packaging "cython<3.0" "numpy<2.0"
+pip install msgpack packaging "cython" "numpy"
 MPICC="mpicc" pip install --no-cache-dir --no-binary=mpi4py mpi4py
 
 # Special handling for Niagara (skip HDF5_MPI installation)
